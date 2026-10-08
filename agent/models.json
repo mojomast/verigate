@@ -1,16 +1,16 @@
 {
   "providers": {
     "ornith-local": {
-      "baseUrl": "http://127.0.0.1:8080/v1",
+      "baseUrl": "http://127.0.0.1:8091/v1",
       "api": "openai-completions",
       "apiKey": "local",
       "models": [
         {
-          "id": "ornith-1.5-9b",
-          "name": "Ornith 1.5 9B",
+          "id": "auto",
+          "name": "Ornith 1.5 9B (Turbofit)",
           "reasoning": true,
           "input": ["text"],
-          "contextWindow": 32768,
+          "contextWindow": 87040,
           "maxTokens": 4096,
           "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
           "samplingParams": {
@@ -29,7 +29,7 @@
               "repetition_penalty": 1.0
             },
             "low": {
-              "temperature": 0.8,
+              "temperature": 0.6,
               "top_p": 0.95,
               "top_k": 20,
               "presence_penalty": 0.0

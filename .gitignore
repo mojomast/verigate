@@ -2,6 +2,7 @@
 .pi-plan/
 *.log
 /tmp/pi-spill-*
+/tmp/
 
 # OS & Editor
 .DS_Store
@@ -11,3 +12,16 @@ Thumbs.db
 
 # Node
 node_modules/
+
+# Written by Pi at runtime -- machine-local credential and cache state, never shared.
+# (agent/auth.json is where Pi stores provider credentials; do NOT commit it.)
+agent/auth.json
+agent/models-store.json
+agent/settings.local.json
+
+# Harness run artifacts
+.pi-plan/
+*.log
+coverage.xml
+.coverage
+.pytest_cache/

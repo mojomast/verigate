@@ -24,6 +24,14 @@ const TAIL_FIRST_TOOLS = new Set(["bash"]); // for these, the tail is more valua
 const MAX_SAME_FAILURES = 2;
 const MAX_IDENTICAL_STREAK = 3;
 
+// Windows: `python3` resolves to the Microsoft Store alias stub, which exits non-zero with a
+// store message instead of ENOENT -- that would be reported as a bogus syntax error. `bash` on
+// PATH is the WSL launcher in system32, which checks files in a different filesystem root.
+const IS_WIN = process.platform === "win32";
+const GIT_BASH = "C:\\Program Files\\Git\\bin\\bash.exe";
+const PY = IS_WIN ? "python" : "python3";
+const SH = IS_WIN ? GIT_BASH : "bash";
+
 const sig = (name: string, input: unknown) => `${name}:${JSON.stringify(input)}`;
 
 function clip(text: string, tailFirst: boolean): { text: string; clipped: boolean; total: number } {
@@ -64,7 +72,7 @@ function syntaxCheck(file: string, cwd: string): string | undefined {
 	};
 	switch (extname(path)) {
 		case ".py":
-			return run("python3", ["-m", "py_compile", path]);
+			return run(PY, ["-m", "py_compile", path]);
 		case ".js":
 		case ".mjs":
 		case ".cjs":
@@ -73,9 +81,9 @@ function syntaxCheck(file: string, cwd: string): string | undefined {
 			return run("ruby", ["-c", path]);
 		case ".sh":
 		case ".bash":
-			return run("bash", ["-n", path]);
+			return run(SH, ["-n", path]);
 		case ".json":
-			return run("python3", ["-c", "import json,sys;json.load(open(sys.argv[1]))", path]);
+			return run(PY, ["-c", "import json,sys;json.load(open(sys.argv[1]))", path]);
 		default:
 			return undefined;
 	}

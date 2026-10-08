@@ -13,9 +13,16 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 // @ts-ignore plain JS module shared with the driver
-import { blockTask, buildTaskPrompt, completeTask, createPlan, hasBlocked, hasPlan, isFinished, loadPlan, nextTask, noteRunEnded, PLANNING_PROMPT, progressTail, resetPlan, summary } from "./plan-lib.mjs";
+import { armGatesForPlan, blockTask, buildTaskPrompt, completeTask, createPlan, hasBlocked, hasIncomplete, hasPlan, isFinished, loadPlan, nextTask, noteRunEnded, PLANNING_PROMPT, progressTail, resetPlan, summary, unblockTask } from "./plan-lib.mjs";
 
 const text = (t: string) => ({ content: [{ type: "text" as const, text: t }] });
+
+// Schema-level phase scoping: during a planning session the task tools are not merely
+// discouraged, they are NOT REGISTERED. The model cannot call task_done to mark work finished
+// because the tool does not exist in its schema. A prompt instruction ("plan only, do not
+// implement") was demonstrably bypassed in testing; this makes the bypass impossible.
+const PHASE = (process.env.PI_PHASE ?? "execute").toLowerCase();
+const IS_PLANNING = PHASE === "plan";
 
 export default function (pi: ExtensionAPI) {
 	let stopRequested = false;
@@ -156,6 +163,35 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	// ---- model-facing tools ------------------------------------------------------------------
+	// Planning sessions get plan_create only. task_done / task_blocked / plan_status are how an
+	// agent declares progress, and a planner that can call them can finish the entire job before
+	// the execution loop ever starts -- which is exactly what happened in testing.
+	if (IS_PLANNING) {
+		pi.registerTool({
+			name: "plan_create",
+			label: "plan",
+			description:
+				"Create the task plan for a large goal. Give 3-8 SMALL ordered tasks. Each task needs a title and, whenever possible, a `verify` shell command that exits 0 only when it is truly done (tests, build, grep, file exists).",
+			promptSnippet: "Create a verified task plan for a multi-step goal",
+			promptGuidelines: ["Call plan_create ONCE when given a multi-step goal, then stop."],
+			parameters: Type.Object({
+				goal: Type.String({ description: "One-sentence overall goal" }),
+				tasks: Type.Array(
+					Type.Object({
+						title: Type.String({ description: "Small, concrete, single-purpose task" }),
+						verify: Type.Optional(Type.String({ description: "Shell command that exits 0 when the task is done" })),
+					}),
+				),
+			}),
+			async execute(_id, params, _signal, _onUpdate, ctx) {
+				const plan = createPlan(ctx.cwd, params.goal, params.tasks);
+				render(ctx);
+				return text(`Plan saved with ${plan.tasks.length} tasks:\n${summary(plan)}\nStop now; execution starts task by task.`);
+			},
+		});
+		return;
+	}
+
 	pi.registerTool({
 		name: "plan_create",
 		label: "plan",
@@ -180,6 +216,24 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.registerTool({
+		name: "task_requeue",
+		label: "requeue task",
+		description:
+			"Move a task that was parked as UNSATISFIABLE back to pending. Use only when the gate that blocked it should now pass -- e.g. after the files it needs have been created by another task.",
+		promptSnippet: "Requeue a task parked as unsatisfiable",
+		promptGuidelines: ["Use task_requeue instead of retrying task_done on an unsatisfiable task."],
+		parameters: Type.Object({
+			task_id: Type.Number(),
+			reason: Type.Optional(Type.String({ description: "Why it can pass now" })),
+		}),
+		async execute(_id, params, _signal, _onUpdate, ctx) {
+			const plan = unblockTask(ctx.cwd, params.task_id, params.reason ?? "");
+			render(ctx, nextTask(plan) ?? undefined);
+			return text(`Task ${params.task_id} requeued to pending.`);
+		},
+	});
+
+	pi.registerTool({
 		name: "task_done",
 		label: "task done",
 		description: "Mark your current task finished. The harness runs the task's check command; if it fails you get the error and must fix it.",
@@ -190,6 +244,10 @@ export default function (pi: ExtensionAPI) {
 			note: Type.Optional(Type.String({ description: "One line: what you did, anything the next task must know" })),
 		}),
 		async execute(_id, params, _signal, _onUpdate, ctx) {
+			// Arm the harness gates IN THIS PROCESS before deciding. The driver derives them, but
+			// this tool runs in the Pi subprocess; without this the harness is silently ungated
+			// and only the model's own (weak) task verify applies.
+			armGatesForPlan(ctx.cwd);
 			const r = completeTask(ctx.cwd, params.task_id, params.note ?? "");
 			render(ctx, nextTask(r.plan) ?? undefined);
 			if (!r.ok) throw new Error(r.message); // thrown => isError, so the circuit breaker also counts it
