@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Long-horizon driver wrapper. Usage (from your project dir): /path/to/pi-plan --goal "..."  |  pi-plan  (resume)
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PI_CODING_AGENT_DIR="$DIR/agent"
+exec node "$DIR/agent/extensions/long-horizon/run-plan.mjs" "$@"

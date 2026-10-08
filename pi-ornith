@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Run pi with the Ornith-tuned agent dir (does not touch ~/.pi). Usage: /path/to/pi-ornith [pi args]
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PI_CODING_AGENT_DIR="$DIR/agent"
+exec pi "$@"

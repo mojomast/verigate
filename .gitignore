@@ -1,0 +1,13 @@
+# Plan and local run state
+.pi-plan/
+*.log
+/tmp/pi-spill-*
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Node
+node_modules/

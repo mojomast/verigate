@@ -1,0 +1,20 @@
+{
+  "defaultProvider": "ornith-local",
+  "defaultModel": "ornith-1.5-9b",
+  "defaultThinkingLevel": "low",
+  "thinkingBudgets": {
+    "minimal": 256,
+    "low": 1024,
+    "medium": 3072,
+    "high": 6144
+  },
+  "defaultTools": ["read", "edit", "write", "bash", "grep", "find"],
+  "compaction": {
+    "enabled": true,
+    "reserveTokens": 6144,
+    "keepRecentTokens": 8000
+  },
+  "steeringMode": "one-at-a-time",
+  "followUpMode": "one-at-a-time",
+  "cacheWarming": "off"
+}
