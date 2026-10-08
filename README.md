@@ -1,4 +1,6 @@
-# pornithi 🦅
+# verigate
+
+> **veri**·**gate** — verification as a gate the model cannot argue with.
 
 > An agent harness that makes **7B–9B models behave like they were reviewed** — harness-owned
 > acceptance gates, an operator-owned oracle, and structural (not prompt-level) enforcement of
@@ -150,7 +152,7 @@ Useful flags:
 
 ## The acceptance contract
 
-`pornithi` will infer *a* test command from your repo. It cannot know the one **you** meant. That
+`verigate` will infer *a* test command from your repo. It cannot know the one **you** meant. That
 difference matters — see [Known limits](#known-limits).
 
 Put what you actually require in `.pi-gates.json` at your project root:
@@ -242,7 +244,7 @@ verification literature: *"evaluator unavailable is `unobserved`"*, never a sile
 Pi's default tool output is 2000 lines / 50KB, which can consume 30–40% of a small context window
 in a single command.
 
-| Behaviour | pornithi |
+| Behaviour | verigate |
 |---|---|
 | Lines per tool result | 120 (~6KB), head **and** tail |
 | `bash` results | 60% of budget reserved for the tail, where errors live |
@@ -256,7 +258,7 @@ in a single command.
 ## Repository layout
 
 ```
-pornithi/
+verigate/
 ├── pi-ornith[.cmd]              # interactive launcher
 ├── pi-plan[.cmd]                # headless driver
 └── agent/
